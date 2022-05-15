@@ -75,7 +75,13 @@ func main() {
 	hasResults := printResults(scoopLocalSearch(bucketsPath, args.query), false)
 	// print results and exit with status code
 	if !hasResults && scoopSearchApiKey != "" {
-		hasResults = printResults(scoopSearchAPI(args.query, args.officialOnly), true)
+		var starsThreshold int
+		if args.popularCommunityAndUp {
+			starsThreshold = 50
+		} else {
+			starsThreshold = 0
+		}
+		hasResults = printResults(scoopSearchAPI(args.query, args.officialOnly, args.topResults, starsThreshold), true)
 	}
 
 	if !hasResults {
@@ -120,7 +126,7 @@ func scoopLocalSearch(bucketsPath string, term string) matchMap {
 	return matches.data
 }
 
-func scoopSearchAPI(term string, officialOnly bool) matchMap {
+func scoopSearchAPI(term string, officialOnly bool, topResults int, starsThreshold int) matchMap {
 	var arena fastjson.Arena
 	var parser fastjson.Parser
 
@@ -143,9 +149,9 @@ func scoopSearchAPI(term string, officialOnly bool) matchMap {
 	body.Set("orderby", arena.NewString("search.score() desc, Metadata/OfficialRepositoryNumber desc, NameSortable asc"))
 	body.Set("search", arena.NewString(term))
 	body.Set("searchMode", arena.NewString("all"))
-	body.Set("select", arena.NewString("Name,NamePartial,NameSuffix,Version,Metadata/Repository,Metadata/OfficialRepository"))
+	body.Set("select", arena.NewString("Name,NamePartial,NameSuffix,Version,Metadata/Repository,Metadata/OfficialRepository,Metadata/RepositoryStars"))
 	body.Set("skip", arena.NewNumberInt(0))
-	body.Set("top", arena.NewNumberInt(20))
+	body.Set("top", arena.NewNumberInt(topResults))
 
 	request, err := http.NewRequest(
 		"POST",
@@ -184,19 +190,25 @@ func scoopSearchAPI(term string, officialOnly bool) matchMap {
 			defer wg.Done()
 
 			var bucket string
-			if searchRes.Get("Metadata").GetBool("OfficialRepository") {
-				bucket = knownBuckets[string(searchRes.Get("Metadata").GetStringBytes("Repository"))]
-			} else {
-				bucketSplit := strings.Split(string(searchRes.Get("Metadata").GetStringBytes("Repository")), "/")
-				bucket = bucketSplit[len(bucketSplit)-2] + "_" + bucketSplit[len(bucketSplit)-1]
+
+			stars := searchRes.Get("Metadata").GetInt("RepositoryStars")
+			official := searchRes.Get("Metadata").GetBool("OfficialRepository")
+			repo := string(searchRes.Get("Metadata").GetStringBytes("Repository"))
+			if official || stars > starsThreshold {
+				if official {
+					bucket = knownBuckets[repo]
+				} else {
+					bucketSplit := strings.Split(repo, "/")
+					bucket = bucketSplit[len(bucketSplit)-2] + "_" + bucketSplit[len(bucketSplit)-1]
+				}
+				matches.Lock()
+				matches.data[bucket] = append(matches.data[bucket], match{
+					string(searchRes.GetStringBytes("Name")),
+					string(searchRes.GetStringBytes("Version")),
+					"",
+				})
+				matches.Unlock()
 			}
-			matches.Lock()
-			matches.data[bucket] = append(matches.data[bucket], match{
-				string(searchRes.GetStringBytes("Name")),
-				string(searchRes.GetStringBytes("Version")),
-				"",
-			})
-			matches.Unlock()
 		}(searchResult)
 	}
 	wg.Wait()
