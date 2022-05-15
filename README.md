@@ -5,6 +5,25 @@
 
 Fast `scoop search` replacement with some extra features.
 
+## Usage
+```ps1
+Usage: C:\Users\beerpiss\Documents\code\scoop-search\scoop-search.exe [OPTIONS] [<query>|/<query>/]
+
+Performs search on all available buckets and online if local results are not found.
+If query is flanked by slashes, it is interpreted as a Golang regular expression
+locally but as plain text online.
+
+General:
+    --hook   	Prints 'scoop search' hook
+    --help   	Prints this help message
+
+Online searching:
+    --known  	Only show resuls from known buckets            	[default: false]
+    --popular	Show results from known buckets and            	[default: false]
+             	popular community repositories (>50 stars)
+    --top N  	Returns the top N results when searching online	[default: 100]
+```
+
 ## Hook
 
 Instead of using `scoop-search.exe <term>` you can setup a hook that will run `scoop-search.exe` whenever you use native `scoop search`
