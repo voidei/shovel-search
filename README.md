@@ -3,13 +3,7 @@
 [![](https://goreportcard.com/badge/github.com/shilangyu/scoop-search)](https://goreportcard.com/report/github.com/shilangyu/scoop-search)
 [![](https://github.com/shilangyu/scoop-search/workflows/ci/badge.svg)](https://github.com/shilangyu/scoop-search/actions)
 
-Fast `scoop search` drop-in replacement 🚀
-
-## Installation
-
-```sh
-scoop install scoop-search
-```
+Fast `scoop search` replacement with some extra features.
 
 ## Hook
 
@@ -23,9 +17,7 @@ Invoke-Expression (&scoop-search --hook)
 
 ## Features
 
-Behaves just like `scoop search` and returns identical output. If any differences are found please open an issue.
-
-**Non-goal**: any additional features unavailable in scoop search
+Returns identical results as `scoop search`, though it can also take advantage of the [ScoopSearch API](https://github.com/ScoopInstaller/ScoopInstaller.AzureFunctions) to search online buckets.
 
 ## Benchmarks
 
@@ -47,3 +39,10 @@ Summary
 ```
 
 _ran on AMD Ryzen 5 3600 @ 3.6GHz_
+
+## Building
+To enable online lookup, you'll need to link an API key:
+```sh
+# How you find this API key is up to you
+go build -ldflags="-X 'main.scoopSearchApiKey=something'"
+```

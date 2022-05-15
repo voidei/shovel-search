@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,11 +15,17 @@ import (
 	"github.com/valyala/fastjson"
 )
 
-type match struct {
-	name, version, bin string
-}
+type (
+	match struct {
+		name, version, bin string
+	}
+	matchMap = map[string][]match
+)
 
-type matchMap = map[string][]match
+var (
+	knownBuckets      map[string]string
+	scoopSearchApiKey string
+)
 
 // resolves the path to scoop folder
 func scoopHome() (res string) {
@@ -33,8 +42,25 @@ func scoopHome() (res string) {
 	return
 }
 
+func scoopKnownRepos() (res map[string]string) {
+	res = make(map[string]string)
+	var parser fastjson.Parser
+
+	raw, err := os.ReadFile(scoopHome() + "\\apps\\scoop\\current\\buckets.json")
+	check(err)
+
+	result, _ := parser.ParseBytes(raw)
+	object, _ := result.Object()
+
+	object.Visit(func(k []byte, v *fastjson.Value) {
+		res[string(v.GetStringBytes())] = string(k)
+	})
+	return
+}
+
 func main() {
 	args := parseArgs()
+	knownBuckets = scoopKnownRepos()
 
 	// print posh hook and exit if requested
 	if args.hook {
@@ -45,7 +71,19 @@ func main() {
 	// get buckets path
 	bucketsPath := scoopHome() + "\\buckets"
 
-	// get specific buckets
+	hasResults := printResults(scoopLocalSearch(bucketsPath, args.query), false)
+	// print results and exit with status code
+	if !hasResults && scoopSearchApiKey != "" {
+		hasResults = printResults(scoopSearchAPI(args.query, args.officialOnly), true)
+	}
+
+	if !hasResults {
+		fmt.Println("No results found.")
+		os.Exit(1)
+	}
+}
+
+func scoopLocalSearch(bucketsPath string, term string) matchMap {
 	buckets, err := os.ReadDir(bucketsPath)
 	checkWith(err, "Scoop folder does not exist")
 
@@ -70,7 +108,7 @@ func main() {
 				bucketPath += "\\bucket"
 			}
 
-			res := matchingManifests(bucketPath, args.query)
+			res := matchingManifests(bucketPath, term)
 			matches.Lock()
 			matches.data[file.Name()] = res
 			matches.Unlock()
@@ -78,11 +116,84 @@ func main() {
 		}(bucket)
 	}
 	wg.Wait()
+	return matches.data
+}
 
-	// print results and exit with status code
-	if !printResults(matches.data) {
-		os.Exit(1)
+func scoopSearchAPI(term string, officialOnly bool) matchMap {
+	var arena fastjson.Arena
+	var parser fastjson.Parser
+
+	body := arena.NewObject()
+	body.Set("count", arena.NewTrue())
+	if officialOnly {
+		body.Set("filter", arena.NewString("Metadata/OfficialRepositoryNumber eq 1"))
+	} else {
+		body.Set("filter", arena.NewString(""))
 	}
+	body.Set("highlight", arena.NewString(""))
+	body.Set("highlightPreTag", arena.NewString(""))
+	body.Set("highlightPostTag", arena.NewString(""))
+	body.Set("orderby", arena.NewString("search.score() desc, Metadata/OfficialRepositoryNumber desc, NameSortable asc"))
+	body.Set("search", arena.NewString(term))
+	body.Set("searchMode", arena.NewString("all"))
+	body.Set("select", arena.NewString("Name,NamePartial,NameSuffix,Version,Metadata/Repository,Metadata/OfficialRepository"))
+	body.Set("skip", arena.NewNumberInt(0))
+	body.Set("top", arena.NewNumberInt(20))
+
+	request, err := http.NewRequest(
+		"POST",
+		"https://scoopsearch.search.windows.net/indexes/apps/docs/search?api-version=2020-06-30",
+		bytes.NewReader(body.MarshalTo(nil)),
+	)
+	if err != nil {
+		if strings.Contains(err.Error(), "no such host") {
+			return make(matchMap)
+		} else {
+			check(err)
+		}
+	}
+	request.Header.Set("api-key", scoopSearchApiKey)
+	request.Header.Set("content-type", "application/json")
+
+	response, err := http.DefaultClient.Do(request)
+	check(err)
+	defer response.Body.Close()
+
+	raw, err := ioutil.ReadAll(response.Body)
+	check(err)
+
+	result, _ := parser.ParseBytes(raw)
+	values := result.GetArray("value")
+
+	var wg sync.WaitGroup
+	matches := struct {
+		sync.Mutex
+		data matchMap
+	}{}
+	matches.data = make(matchMap)
+	for _, searchResult := range values {
+		wg.Add(1)
+		go func(searchRes *fastjson.Value) {
+			defer wg.Done()
+
+			var bucket string
+			if searchRes.Get("Metadata").GetBool("OfficialRepository") {
+				bucket = knownBuckets[string(searchRes.Get("Metadata").GetStringBytes("Repository"))]
+			} else {
+				bucketSplit := strings.Split(string(searchRes.Get("Metadata").GetStringBytes("Repository")), "/")
+				bucket = bucketSplit[len(bucketSplit)-2] + "_" + bucketSplit[len(bucketSplit)-1]
+			}
+			matches.Lock()
+			matches.data[bucket] = append(matches.data[bucket], match{
+				string(searchRes.GetStringBytes("Name")),
+				string(searchRes.GetStringBytes("Version")),
+				"",
+			})
+			matches.Unlock()
+		}(searchResult)
+	}
+	wg.Wait()
+	return matches.data
 }
 
 func matchingManifests(path string, term string) (res []match) {
@@ -165,7 +276,7 @@ func matchingManifests(path string, term string) (res []match) {
 	return
 }
 
-func printResults(data matchMap) (anyMatches bool) {
+func printResults(data matchMap, fromScoopSearch bool) (anyMatches bool) {
 	// sort by bucket names
 	entries := 0
 	sortedKeys := make([]string, 0, len(data))
@@ -173,11 +284,40 @@ func printResults(data matchMap) (anyMatches bool) {
 		entries += len(data[k])
 		sortedKeys = append(sortedKeys, k)
 	}
-	sort.Strings(sortedKeys)
+
+	if fromScoopSearch {
+		// Hoisting known buckets down to the bottom
+		sort.SliceStable(sortedKeys, func(i, j int) bool {
+			isIOfficial := !strings.Contains(sortedKeys[i], "_")
+			isJOfficial := !strings.Contains(sortedKeys[j], "_")
+			if isIOfficial && !isJOfficial {
+				return false
+			} else if !isIOfficial && isJOfficial {
+				return true
+			} else {
+				return sortedKeys[i] > sortedKeys[j]
+			}
+		})
+	} else {
+		sort.Strings(sortedKeys)
+	}
+
+	for _, k := range sortedKeys {
+		v := data[k]
+
+		if len(v) > 0 {
+			anyMatches = true
+			break
+		}
+	}
 
 	// reserve additional space assuming each variable string has length 1. Will save time on initial allocations
 	var display strings.Builder
 	display.Grow((len(sortedKeys)*12 + entries*11))
+
+	if anyMatches && fromScoopSearch {
+		fmt.Println("Results from other buckets...")
+	}
 
 	for _, k := range sortedKeys {
 		v := data[k]
@@ -186,7 +326,20 @@ func printResults(data matchMap) (anyMatches bool) {
 			anyMatches = true
 			display.WriteString("'")
 			display.WriteString(k)
-			display.WriteString("' bucket:\n")
+			display.WriteString("' bucket")
+			if fromScoopSearch {
+				if strings.Contains(k, "_") {
+					display.WriteString(" (https://github.com/")
+					display.WriteString(strings.Replace(k, "_", "/", 1))
+					display.WriteString("):\n")
+				} else {
+					display.WriteString(" (install using 'scoop install ")
+					display.WriteString(k)
+					display.WriteString("/<app>'):\n")
+				}
+			} else {
+				display.WriteString(":\n")
+			}
 			for _, m := range v {
 				display.WriteString("    ")
 				display.WriteString(m.name)
@@ -202,10 +355,6 @@ func printResults(data matchMap) (anyMatches bool) {
 			}
 			display.WriteString("\n")
 		}
-	}
-
-	if !anyMatches {
-		display.WriteString("No matches found.")
 	}
 
 	os.Stdout.WriteString(display.String())
