@@ -1,0 +1,13 @@
+{
+	"count": true,
+	"filter": "",
+	"highlight": "Name,NamePartial,NameSuffix,Version,Metadata/Repository",
+	"highlightPreTag": "",
+	"highlightPostTag": "",
+	"orderby": "search.score() desc, Metadata/OfficialRepositoryNumber desc, NameSortable asc",
+	"search": "ball",
+	"searchMode": "all",
+	"select": "Name,NamePartial,NameSuffix,Version,Metadata/Repository,Metadata/OfficialRepository",
+	"skip": 0,
+	"top": 20
+}

@@ -20,7 +20,8 @@ Invoke-Expression (&scoop-search --hook)
 Returns identical results as `scoop search`, though it doesn't behave the same as `scoop search`, so if that's what you want, please check upstream.
 
 ## Deviations from scoop search
-### Regex searching:
+### Regex searching
+Uses [Golang regex](https://pkg.go.dev/regexp/syntax), so negative/positive lookahead/lookbehind supported.
 ```ps1
 ❯ scoop-search /balls?/
 'extras' bucket:
@@ -43,7 +44,7 @@ Returns identical results as `scoop search`, though it doesn't behave the same a
 ```
 
 ### Online searching
-```
+```ps1
 ❯ scoop-search noto
 Results from other buckets...
 'dodorz_scoop' bucket (https://github.com/dodorz/scoop):
