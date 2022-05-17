@@ -24,7 +24,7 @@ func parseArgs() parsedArgs {
 	popularCommunity := flag.Bool("popular", false, "When searching online, only returns popular buckets (50 stars and up)")
 	flag.Parse()
 
-	if (flag.NArg() == 0 && !*hook) || *help {
+	if *help {
 		fmt.Printf("Usage: %s [OPTIONS] [<query>|/<query>/]\n", os.Args[0])
 		fmt.Println("")
 		fmt.Println("Performs search on all available buckets and online if local results are not found.")
