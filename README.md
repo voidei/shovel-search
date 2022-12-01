@@ -9,7 +9,7 @@ Forked from [scoop-search](https://github.com/shilangyu/scoop-search) by [shilan
 ## Installation
 
 ```sh
-scoop install scoop-search
+scoop install https://raw.githubusercontent.com/voidei/shovel-search/master/shovel-search.json
 ```
 
 ## Hook
