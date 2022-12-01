@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/ScoopInstaller/Scoop/master/schema.json",
   "version": "1.0.0",
   "description": "Fast shovel search drop-in replacement",
   "homepage": "https://github.com/voidei/shovel-search",
