@@ -4,11 +4,11 @@
   "homepage": "https://github.com/voidei/shovel-search",
   "license": "MIT",
   "notes": "To replace built-in shovel search, add this to your $PROFILE: Invoke-Expression (&shovel-search --hook)",
-  "url": "https://github.com/voidei/shovel-search",
-  "hash": "",
+  "url": "https://github.com/voidei/shovel-search/releases/download/v1.0.0/shovel-search.exe",
+  "hash": "2221fdcf64c5cfdde52e3221c4cba3bf17c650f9",
   "bin": "shovel-search.exe",
   "checkver": "github",
   "autoupdate": {
-    "url": "https://github.com/voidei/shovel-search"
+    "url": "https://github.com/voidei/shovel-search/releases/download/v$version/shovel-search.exe"
   }
 }
