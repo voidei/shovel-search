@@ -4,6 +4,7 @@
 [![](https://github.com/shilangyu/scoop-search/workflows/ci/badge.svg)](https://github.com/shilangyu/scoop-search/actions)
 
 Fast `scoop search` drop-in replacement 🚀
+Forked from [scoop-search](https://github.com/shilangyu/scoop-search) by [shilangyu](https://github.com/shilangyu)
 
 ## Installation
 
@@ -13,24 +14,25 @@ scoop install scoop-search
 
 ## Hook
 
-Instead of using `scoop-search.exe <term>` you can setup a hook that will run `scoop-search.exe` whenever you use native `scoop search`
+Instead of using `shovel-search.exe <term>` you can setup a hook that will run `shovel-search.exe` whenever you use native `shovel search`
 
 Add this to your Powershell profile (usually located at `$PROFILE`)
 
 ```ps1
-Invoke-Expression (&scoop-search --hook)
+Invoke-Expression (&shovel-search --hook)
 ```
 
 ## Features
 
-Behaves just like `scoop search` and returns identical output. If any differences are found please open an issue.
+Behaves just like `shovel search` and returns identical output. If any differences are found please open an issue.
 
 **Non-goal**: any additional features unavailable in scoop search
 
 ## Benchmarks
 
-Done with [hyperfine](https://github.com/sharkdp/hyperfine). `scoop-search` is on average 50 times faster.
+Done with [hyperfine](https://github.com/sharkdp/hyperfine). `shovel-search` is on average 50 times faster.
 
+# TODO - replace this w/ my own shovel-search results, so i'm not ripping off the original author's scoop-search results
 ```sh
 ❯ hyperfine --warmup 1 'scoop-search google' 'scoop search google'
 Benchmark #1: scoop-search google
