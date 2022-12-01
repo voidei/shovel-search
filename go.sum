@@ -1,2 +1,4 @@
+github.com/shilangyu/scoop-search v1.2.0 h1:ytj7A1iQKwOo5KkJ3uo+zEM9L4j5ggI5azhcBvZ+/oM=
+github.com/shilangyu/scoop-search v1.2.0/go.mod h1:BIMWmYKF+qfRU7K90GAD8sqCrEk47FwxDoTIqF+22RE=
 github.com/valyala/fastjson v1.6.3 h1:tAKFnnwmeMGPbwJ7IwxcTPCNr3uIzoIj3/Fh90ra4xc=
 github.com/valyala/fastjson v1.6.3/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=

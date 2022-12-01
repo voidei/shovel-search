@@ -2,14 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/valyala/fastjson"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
-
-	"github.com/valyala/fastjson"
 )
 
 type match struct {
@@ -95,7 +94,7 @@ func matchingManifests(path string, term string) (res []match) {
 	for _, file := range files {
 		name := file.Name()
 
-		// its not a manifest, skip
+		// it's not a manifest, skip
 		if !strings.HasSuffix(name, ".json") {
 			continue
 		}
@@ -158,7 +157,7 @@ func matchingManifests(path string, term string) (res []match) {
 	}
 
 	sort.SliceStable(res, func(i, j int) bool {
-		// case insensitive comparison where hyphens are ignored
+		// case-insensitive comparison where hyphens are ignored
 		return strings.ToLower(strings.ReplaceAll(res[i].name, "-", "")) <= strings.ToLower(strings.ReplaceAll(res[j].name, "-", ""))
 	})
 
@@ -177,7 +176,7 @@ func printResults(data matchMap) (anyMatches bool) {
 
 	// reserve additional space assuming each variable string has length 1. Will save time on initial allocations
 	var display strings.Builder
-	display.Grow((len(sortedKeys)*12 + entries*11))
+	display.Grow(len(sortedKeys)*12 + entries*11)
 
 	for _, k := range sortedKeys {
 		v := data[k]

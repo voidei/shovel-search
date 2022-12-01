@@ -25,13 +25,13 @@ jobs:
         run: go get -v -t -d ./...
 
       - name: Build for Windows
-        run: GOOS=windows GOARCH=amd64 go build -o scoop-search.exe -v .
+        run: GOOS=windows GOARCH=amd64 go build -o shovel-search.exe -v .
 
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/') && github.repository == 'shilangyu/scoop-search'
+        if: startsWith(github.ref, 'refs/tags/') && github.repository == 'voidei/shovel-search'
         with:
           files: |
-            scoop-search.exe
+            shovel-search.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

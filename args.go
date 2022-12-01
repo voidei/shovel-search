@@ -22,4 +22,4 @@ func parseArgs() parsedArgs {
 	return parsedArgs{query, hook}
 }
 
-const poshHook = `function scoop { if ($args[0] -eq "search") { scoop-search.exe @($args | Select-Object -Skip 1) } else { scoop.ps1 @args } }`
+const poshHook = `function shovel { if ($args[0] -eq "search") { shovel-search.exe @($args | Select-Object -Skip 1) } else { shovel.ps1 @args } }`
