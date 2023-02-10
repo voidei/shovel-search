@@ -22,11 +22,29 @@ func scoopHome() (res string) {
 	if value, ok := os.LookupEnv("SCOOP"); ok {
 		res = value
 	} else {
-		var err error
-		res, err = os.UserHomeDir()
+		var configHome string
+
+		home, err := os.UserHomeDir()
 		checkWith(err, "Could not determine home dir")
 
-		res += "\\scoop"
+		if value, ok = os.LookupEnv("XDG_CONFIG_HOME"); ok {
+			configHome = value
+		} else {
+			configHome = home + "\\.config"
+		}
+
+		configPath := configHome + "\\scoop\\config.json"
+		if content, err := os.ReadFile(configPath); err == nil {
+			var parser fastjson.Parser
+			config, _ := parser.ParseBytes(content)
+			res = string(config.GetStringBytes("root_path"))
+		}
+
+		// installing with default directory doesn't have `SCOOP`
+		// and `root_path` either
+		if res == "" {
+			res = home + "\\scoop"
+		}
 	}
 
 	return
