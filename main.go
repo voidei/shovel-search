@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/valyala/fastjson"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/valyala/fastjson"
 )
 
 type match struct {
